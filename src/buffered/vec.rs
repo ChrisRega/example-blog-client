@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
+/// A lazy-async vector from some kind of source
 pub struct BufVec<
     T: Debug,
     U: Fn(Sender<Message<T>>) -> Fut,

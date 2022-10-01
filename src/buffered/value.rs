@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
+/// A single lazy-async updated value
 pub struct BufVal<
     T: Debug,
     U: Fn(Sender<Message<T>>) -> Fut,
