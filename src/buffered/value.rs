@@ -101,10 +101,10 @@ mod test {
 
         Runtime::new().unwrap().block_on(async {
             let mut delayed_value = LazyValuePromise::new(string_maker, 6);
-            assert_eq!(delayed_value.poll_state(), DataState::Updating);
+            assert_eq!(*delayed_value.poll_state(), DataState::Updating);
             assert!(delayed_value.value().is_none());
             std::thread::sleep(Duration::from_millis(150));
-            assert_eq!(delayed_value.poll_state(), DataState::UpToDate);
+            assert_eq!(*delayed_value.poll_state(), DataState::UpToDate);
             assert_eq!(delayed_value.value().unwrap(), "1");
         });
     }

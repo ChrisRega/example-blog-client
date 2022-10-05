@@ -3,7 +3,46 @@ use std::fmt::Debug;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-/// # A lazy and async vector  
+/// # A lazy, async and partially readable vector promise
+/// This promise is the right one for async acquiring of lists which should be partially readable on each frame.
+/// It's lazy, meaning that no spawning is done, until the first poll is emitted. Type erasure can be done using a Box with dyn `SlicePromise`
+/// Examples:
+/// ```rust, no_run
+/// use std::time::Duration;
+/// use tokio::sync::mpsc::Sender;
+/// use example_blog_client::buffered::{DataState, Message, SlicePromise, ValuePromise};
+/// use example_blog_client::buffered::vec::LazyVecPromise;
+/// use example_blog_client::unpack_result;  
+/// // updater-future:
+/// let updater = |tx: Sender<Message<i32>>| async move {
+///   for i in 0..100 {
+///     tx.send(Message::NewData(i)).await.unwrap();
+///     // how to handle results and propagate the error to the future? Use `unpack_result!`:
+///     let string = unpack_result!(std::fs::read_to_string("whatever.txt"), tx);
+///     if i > 100 {
+///       tx.send(Message::StateChange(DataState::Error("loop overflow".to_owned()))).await.unwrap();
+///     }
+///    tokio::time::sleep(Duration::from_millis(100)).await;
+///   }
+///   tx.send(Message::StateChange(DataState::UpToDate)).await.unwrap();
+/// };
+/// // direct usage:
+/// let promise = LazyVecPromise::new(updater, 10);
+/// // or storing it with type-erasure for easier usage in application state structs:
+/// let boxed: Box<dyn SlicePromise<i32>> = Box::new(LazyVecPromise::new(updater, 6));
+///
+/// fn main_loop(lazy_promise: &mut Box<dyn SlicePromise<i32>>) {
+///   loop {
+///     match lazy_promise.poll_state() {
+///       DataState::Error(er)  => { println!("Error {} occurred! Retrying!", er); std::thread::sleep(Duration::from_millis(500)); lazy_promise.update(); },
+///       DataState::UpToDate() => { println!("Data complete: {:?}", lazy_promise.as_slice()); },
+///                           _ => { println!("Getting data, might be partially ready! (part: {:?}", lazy_promise.as_slice()); }  
+///     }
+///   }
+/// }
+/// ```
+///
+///
 pub struct LazyVecPromise<
     T: Debug,
     U: Fn(Sender<Message<T>>) -> Fut,
@@ -87,11 +126,12 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 mod test {
     use super::*;
     use crate::buffered::vec::LazyVecPromise;
+    use crate::unpack_result;
     use std::time::Duration;
     use tokio::runtime::Runtime;
 
     #[test]
-    fn test_func() {
+    fn basic_usage_cycle() {
         let string_maker = |tx: Sender<Message<String>>| async move {
             for i in 0..5 {
                 tx.send(Message::NewData(i.to_string())).await.unwrap();
@@ -104,11 +144,40 @@ mod test {
 
         Runtime::new().unwrap().block_on(async {
             let mut delayed_vec = LazyVecPromise::new(string_maker, 6);
-            assert_eq!(delayed_vec.poll_state(), DataState::Updating);
+            // start empty, polling triggers update
+            assert_eq!(*delayed_vec.poll_state(), DataState::Updating);
             assert!(delayed_vec.to_vec().is_empty());
+            // after wait we have a result
             std::thread::sleep(Duration::from_millis(150));
-            assert_eq!(delayed_vec.poll_state(), DataState::UpToDate);
+            assert_eq!(*delayed_vec.poll_state(), DataState::UpToDate);
             assert_eq!(delayed_vec.to_vec().len(), 5);
+            // after update it's empty again
+            delayed_vec.update();
+            assert_eq!(*delayed_vec.poll_state(), DataState::Updating);
+            assert!(delayed_vec.to_vec().is_empty());
+            // finally after waiting it's full again
+            std::thread::sleep(Duration::from_millis(150));
+            assert_eq!(*delayed_vec.poll_state(), DataState::UpToDate);
+            assert_eq!(delayed_vec.to_vec().len(), 5);
+        });
+    }
+
+    #[test]
+    fn error_propagation() {
+        let error_maker = |tx: Sender<Message<String>>| async move {
+            let _ = unpack_result!(std::fs::read_to_string("NOT_EXISTING"), tx);
+            tx.send(Message::StateChange(DataState::UpToDate))
+                .await
+                .unwrap();
+        };
+
+        Runtime::new().unwrap().block_on(async {
+            let mut delayed_vec = LazyVecPromise::new(error_maker, 1);
+            assert_eq!(*delayed_vec.poll_state(), DataState::Updating);
+            assert!(delayed_vec.as_slice().is_empty());
+            std::thread::sleep(Duration::from_millis(150));
+            assert!(matches!(*delayed_vec.poll_state(), DataState::Error(_)));
+            assert!(delayed_vec.as_slice().is_empty());
         });
     }
 }
