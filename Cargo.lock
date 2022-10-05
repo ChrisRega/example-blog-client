@@ -567,6 +567,7 @@ dependencies = [
  "chrono",
  "eframe",
  "egui_extras",
+ "lazy_async_promise",
  "reqwest",
  "serde",
  "serde_json",
@@ -1097,6 +1098,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a53776d271cfb873b17c618af0298445c88afc52837f3e948fa3fafd131f449"
 dependencies = [
  "arrayvec 0.7.2",
+]
+
+[[package]]
+name = "lazy_async_promise"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e28fee4772f92c5b4ba3e4d46c6ded01add0414484242258c7ddcf7c25a1920"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]

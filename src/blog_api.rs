@@ -1,7 +1,7 @@
-use example_blog_client::buffered::value::LazyValuePromise;
-use example_blog_client::buffered::vec::LazyVecPromise;
-use example_blog_client::buffered::{DataState, Message, SlicePromise, ValuePromise};
-use example_blog_client::unpack_result;
+use lazy_async_promise::unpack_result;
+use lazy_async_promise::LazyValuePromise;
+use lazy_async_promise::LazyVecPromise;
+use lazy_async_promise::{DataState, Message, SlicePromise, ValuePromise};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -55,7 +55,7 @@ fn make_request_buffer_slice<T: DeserializeOwned + Debug + Send + 'static>(
         let entries: Vec<T> = unpack_result!(response.json().await, tx);
         for entry in entries {
             tx.send(Message::NewData(entry)).await.unwrap();
-            tokio::time::sleep(Duration::from_millis(2000)).await;
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
         tx.send(Message::StateChange(DataState::UpToDate))
             .await

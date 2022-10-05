@@ -7,7 +7,7 @@ use crate::blog_api::{
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use example_blog_client::buffered::{SlicePromise, ValuePromise, DataState};
+use lazy_async_promise::{DataState, SlicePromise, ValuePromise};
 
 #[tokio::main]
 async fn main() {
