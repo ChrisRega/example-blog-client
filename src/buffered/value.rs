@@ -1,10 +1,13 @@
-use crate::buffered::{Buffer, BufferedValue, DataState, Message, Value};
+use crate::buffered::{DataState, Message, Promise, Value, ValuePromise};
 use std::fmt::Debug;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-/// A single lazy-async updated value
-pub struct BufVal<
+/// # A single lazy-async updated value
+/// Create one with the `new` method and supply an updater.
+/// It's Updated only on first try to poll it making it scale nicely on more complex UIs.
+
+pub struct LazyValuePromise<
     T: Debug,
     U: Fn(Sender<Message<T>>) -> Fut,
     Fut: Future<Output = ()> + Send + 'static,
@@ -16,7 +19,7 @@ pub struct BufVal<
     tx: Sender<Message<T>>,
 }
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static>
-    BufVal<T, U, Fut>
+    LazyValuePromise<T, U, Fut>
 {
     pub fn new(updater: U, buffer_size: usize) -> Self {
         let (tx, rx) = channel::<Message<T>>(buffer_size);
@@ -32,7 +35,7 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 }
 
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static> Value<T>
-    for BufVal<T, U, Fut>
+    for LazyValuePromise<T, U, Fut>
 {
     fn value(&self) -> Option<&T> {
         self.cache.as_ref()
@@ -40,12 +43,12 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 }
 
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static>
-    BufferedValue<T> for BufVal<T, U, Fut>
+    ValuePromise<T> for LazyValuePromise<T, U, Fut>
 {
 }
 
-impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static> Buffer
-    for BufVal<T, U, Fut>
+impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static> Promise
+    for LazyValuePromise<T, U, Fut>
 {
     fn poll_state(&mut self) -> &DataState {
         if self.state == DataState::Uninitialized {
@@ -97,7 +100,7 @@ mod test {
         };
 
         Runtime::new().unwrap().block_on(async {
-            let mut delayed_value = BufVal::new(string_maker, 6);
+            let mut delayed_value = LazyValuePromise::new(string_maker, 6);
             assert_eq!(delayed_value.poll_state(), DataState::Updating);
             assert!(delayed_value.value().is_none());
             std::thread::sleep(Duration::from_millis(150));

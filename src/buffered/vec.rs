@@ -1,10 +1,10 @@
-use crate::buffered::{Buffer, BufferedSlice, DataState, Message, Sliceable};
+use crate::buffered::{DataState, Message, Promise, SlicePromise, Sliceable};
 use std::fmt::Debug;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-/// A lazy-async vector from some kind of source
-pub struct BufVec<
+/// # A lazy and async vector  
+pub struct LazyVecPromise<
     T: Debug,
     U: Fn(Sender<Message<T>>) -> Fut,
     Fut: Future<Output = ()> + Send + 'static,
@@ -17,7 +17,7 @@ pub struct BufVec<
 }
 
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static>
-    BufVec<T, U, Fut>
+    LazyVecPromise<T, U, Fut>
 {
     pub fn new(updater: U, buffer_size: usize) -> Self {
         let (tx, rx) = channel::<Message<T>>(buffer_size);
@@ -37,7 +37,7 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 }
 
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static>
-    Sliceable<T> for BufVec<T, U, Fut>
+    Sliceable<T> for LazyVecPromise<T, U, Fut>
 {
     fn as_slice(&self) -> &[T] {
         self.data.as_slice()
@@ -45,12 +45,12 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 }
 
 impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static>
-    BufferedSlice<T> for BufVec<T, U, Fut>
+    SlicePromise<T> for LazyVecPromise<T, U, Fut>
 {
 }
 
-impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static> Buffer
-    for BufVec<T, U, Fut>
+impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send + 'static> Promise
+    for LazyVecPromise<T, U, Fut>
 {
     fn poll_state(&mut self) -> &DataState {
         if self.state == DataState::Uninitialized {
@@ -86,7 +86,7 @@ impl<T: Debug, U: Fn(Sender<Message<T>>) -> Fut, Fut: Future<Output = ()> + Send
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::buffered::vec::BufVec;
+    use crate::buffered::vec::LazyVecPromise;
     use std::time::Duration;
     use tokio::runtime::Runtime;
 
@@ -103,7 +103,7 @@ mod test {
         };
 
         Runtime::new().unwrap().block_on(async {
-            let mut delayed_vec = BufVec::new(string_maker, 6);
+            let mut delayed_vec = LazyVecPromise::new(string_maker, 6);
             assert_eq!(delayed_vec.poll_state(), DataState::Updating);
             assert!(delayed_vec.to_vec().is_empty());
             std::thread::sleep(Duration::from_millis(150));

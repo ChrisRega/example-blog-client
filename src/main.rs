@@ -7,7 +7,7 @@ use crate::blog_api::{
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use example_blog_client::buffered::{BufferedSlice, BufferedValue, DataState};
+use example_blog_client::buffered::{SlicePromise, ValuePromise, DataState};
 
 #[tokio::main]
 async fn main() {
@@ -21,12 +21,12 @@ async fn main() {
 
 enum Page {
     ListPosts,
-    ViewPost(Box<dyn BufferedValue<Post>>),
+    ViewPost(Box<dyn ValuePromise<Post>>),
 }
 
 struct BlogClient {
-    post_list: Box<dyn BufferedSlice<Post>>,
-    tag_list: Box<dyn BufferedSlice<Tag>>,
+    post_list: Box<dyn SlicePromise<Post>>,
+    tag_list: Box<dyn SlicePromise<Tag>>,
     page: Page,
 }
 

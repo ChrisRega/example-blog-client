@@ -1,7 +1,7 @@
-use example_blog_client::buffered::value::BufVal;
-use example_blog_client::buffered::vec::BufVec;
-use example_blog_client::buffered::{BufferedSlice, BufferedValue, DataState, Message};
-use example_blog_client::check;
+use example_blog_client::buffered::value::LazyValuePromise;
+use example_blog_client::buffered::vec::LazyVecPromise;
+use example_blog_client::buffered::{DataState, Message, SlicePromise, ValuePromise};
+use example_blog_client::unpack_result;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -49,42 +49,42 @@ pub fn resolve_tags<'a>(tag_idx: &[usize], tags: &'a [Tag]) -> Vec<&'a str> {
 
 fn make_request_buffer_slice<T: DeserializeOwned + Debug + Send + 'static>(
     url: &'static str,
-) -> Box<dyn BufferedSlice<T>> {
+) -> Box<dyn SlicePromise<T>> {
     let updater = move |tx: Sender<Message<T>>| async move {
-        let response = check!(reqwest::get(url).await, tx);
-        let entries: Vec<T> = check!(response.json().await, tx);
+        let response = unpack_result!(reqwest::get(url).await, tx);
+        let entries: Vec<T> = unpack_result!(response.json().await, tx);
         for entry in entries {
             tx.send(Message::NewData(entry)).await.unwrap();
-            tokio::time::sleep(Duration::from_millis(20)).await;
+            tokio::time::sleep(Duration::from_millis(2000)).await;
         }
         tx.send(Message::StateChange(DataState::UpToDate))
             .await
             .unwrap();
     };
-    let boxed: Box<dyn BufferedSlice<T>> = Box::new(BufVec::new(updater, 6));
+    let boxed: Box<dyn SlicePromise<T>> = Box::new(LazyVecPromise::new(updater, 6));
     boxed
 }
 
-pub fn make_posts_buffer() -> Box<dyn BufferedSlice<Post>> {
+pub fn make_posts_buffer() -> Box<dyn SlicePromise<Post>> {
     make_request_buffer_slice(POSTS_URL)
 }
 
-pub fn make_tags_buffer() -> Box<dyn BufferedSlice<Tag>> {
+pub fn make_tags_buffer() -> Box<dyn SlicePromise<Tag>> {
     make_request_buffer_slice(TAG_URL)
 }
 
-pub fn make_single_post_request(post_num: i64) -> Box<dyn BufferedValue<Post>> {
+pub fn make_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Post>> {
     let updater = move |tx: Sender<Message<Post>>| async move {
-        let response = check!(
+        let response = unpack_result!(
             reqwest::get(format!("{}/{}", POSTS_URL, post_num)).await,
             tx
         );
-        let post: Post = check!(response.json().await, tx);
+        let post: Post = unpack_result!(response.json().await, tx);
         tx.send(Message::NewData(post)).await.unwrap();
         tx.send(Message::StateChange(DataState::UpToDate))
             .await
             .unwrap();
     };
-    let boxed: Box<dyn BufferedValue<Post>> = Box::new(BufVal::new(updater, 6));
+    let boxed: Box<dyn ValuePromise<Post>> = Box::new(LazyValuePromise::new(updater, 6));
     boxed
 }
