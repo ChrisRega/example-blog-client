@@ -35,7 +35,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 ///   loop {
 ///     match lazy_promise.poll_state() {
 ///       DataState::Error(er)  => { println!("Error {} occurred! Retrying!", er); std::thread::sleep(Duration::from_millis(500)); lazy_promise.update(); },
-///       DataState::UpToDate() => { println!("Data complete: {:?}", lazy_promise.as_slice()); },
+///       DataState::UpToDate   => { println!("Data complete: {:?}", lazy_promise.as_slice()); },
 ///                           _ => { println!("Getting data, might be partially ready! (part: {:?}", lazy_promise.as_slice()); }  
 ///     }
 ///   }
