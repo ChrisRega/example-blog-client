@@ -1,7 +1,9 @@
 use lazy_async_promise::unpack_result;
 use lazy_async_promise::LazyValuePromise;
 use lazy_async_promise::LazyVecPromise;
-use lazy_async_promise::{DataState, Message, SlicePromise, ValuePromise};
+use lazy_async_promise::{
+    DataState, ImmediateValuePromise, Message, SlicePromise, ToDynSendBox, ValuePromise,
+};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -73,7 +75,9 @@ pub fn make_tags_buffer() -> Box<dyn SlicePromise<Tag>> {
     make_request_buffer_slice(TAG_URL)
 }
 
-pub fn make_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Post>> {
+// not used currently in favor of immediate updating version below which is easier but:
+// this allows an easy "update" button on the posts page...
+pub fn _make_lazy_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Post>> {
     let updater = move |tx: Sender<Message<Post>>| async move {
         let response = unpack_result!(
             reqwest::get(format!("{}/{}", POSTS_URL, post_num)).await,
@@ -87,4 +91,14 @@ pub fn make_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Post>> {
     };
     let boxed: Box<dyn ValuePromise<Post>> = Box::new(LazyValuePromise::new(updater, 6));
     boxed
+}
+
+pub fn make_immediate_post_request(post_num: i64) -> ImmediateValuePromise<Post> {
+    ImmediateValuePromise::new(async move {
+        let response = reqwest::get(format!("{}/{}", POSTS_URL, post_num))
+            .await
+            .map_err(|e| e.into_boxed())?;
+        let post: Post = response.json().await.map_err(|e| e.into_boxed())?;
+        Ok(post)
+    })
 }

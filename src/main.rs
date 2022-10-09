@@ -3,11 +3,11 @@ mod blog_api;
 mod ui_helpers;
 
 use crate::blog_api::{
-    make_posts_buffer, make_single_post_request, make_tags_buffer, resolve_tags,
+    make_immediate_post_request, make_posts_buffer, make_tags_buffer, resolve_tags,
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use lazy_async_promise::{DataState, SlicePromise, ValuePromise};
+use lazy_async_promise::{DataState, ImmediateValuePromise, ImmediateValueState, SlicePromise};
 
 #[tokio::main]
 async fn main() {
@@ -21,7 +21,7 @@ async fn main() {
 
 enum Page {
     ListPosts,
-    ViewPost(Box<dyn ValuePromise<Post>>),
+    ViewPost(ImmediateValuePromise<Post>),
 }
 
 struct BlogClient {
@@ -52,16 +52,12 @@ impl BlogClient {
                 return;
             }
         };
-        if ui.button("reload").clicked() {
-            post.update();
-        }
         match post.poll_state() {
-            DataState::UpToDate => {
-                let post = post.value().unwrap();
+            ImmediateValueState::Success(post) => {
                 ui_helpers::view_single_post(post, self.tag_list.as_slice(), ui);
             }
-            DataState::Error(msg) => {
-                ui.label(format!("Error fetching post: {}", msg));
+            ImmediateValueState::Error(e) => {
+                ui.label(format!("Error fetching post: {}", e));
             }
             _ => {
                 ui.spinner();
@@ -85,7 +81,7 @@ impl BlogClient {
                 if let Some(selected_post) =
                     ui_helpers::view_post_list(self.post_list.as_slice(), tags, ui)
                 {
-                    self.page = Page::ViewPost(make_single_post_request(selected_post));
+                    self.page = Page::ViewPost(make_immediate_post_request(selected_post));
                 }
             }
         }

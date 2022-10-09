@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "example_blog_client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "eframe",
@@ -1102,9 +1102,9 @@ dependencies = [
 
 [[package]]
 name = "lazy_async_promise"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e28fee4772f92c5b4ba3e4d46c6ded01add0414484242258c7ddcf7c25a1920"
+checksum = "d02ab6746026b2bddf34c0abd72badddbd91f2835881407925cd606cedb830f4"
 dependencies = [
  "tokio",
 ]

@@ -1,6 +1,6 @@
 [package]
 name = "example_blog_client"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 
@@ -14,4 +14,4 @@ reqwest = {version="0.11", features=["serde_json", "json"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0.85"
 chrono = "0.4"
-lazy_async_promise = "0.1.0"
+lazy_async_promise = "0.1.2"
