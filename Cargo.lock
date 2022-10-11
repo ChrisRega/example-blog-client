@@ -1102,9 +1102,9 @@ dependencies = [
 
 [[package]]
 name = "lazy_async_promise"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d02ab6746026b2bddf34c0abd72badddbd91f2835881407925cd606cedb830f4"
+checksum = "5109ffc8d065477a550508b3512aa78a100aa355c02f8dd548a3394a34602978"
 dependencies = [
  "tokio",
 ]

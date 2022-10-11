@@ -7,7 +7,9 @@ use crate::blog_api::{
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use lazy_async_promise::{DataState, ImmediateValuePromise, ImmediateValueState, SlicePromise};
+use lazy_async_promise::{
+    DataState, ImmediateValuePromise, ImmediateValueState, LazyVecPromise, Promise,
+};
 
 #[tokio::main]
 async fn main() {
@@ -25,8 +27,8 @@ enum Page {
 }
 
 struct BlogClient {
-    post_list: Box<dyn SlicePromise<Post>>,
-    tag_list: Box<dyn SlicePromise<Tag>>,
+    post_list: LazyVecPromise<Post>,
+    tag_list: LazyVecPromise<Tag>,
     page: Page,
 }
 

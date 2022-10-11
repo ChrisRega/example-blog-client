@@ -1,9 +1,7 @@
 use lazy_async_promise::unpack_result;
 use lazy_async_promise::LazyValuePromise;
 use lazy_async_promise::LazyVecPromise;
-use lazy_async_promise::{
-    DataState, ImmediateValuePromise, Message, SlicePromise, ToDynSendBox, ValuePromise,
-};
+use lazy_async_promise::{DataState, ImmediateValuePromise, Message, ToDynSendBox};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -51,7 +49,7 @@ pub fn resolve_tags<'a>(tag_idx: &[usize], tags: &'a [Tag]) -> Vec<&'a str> {
 
 fn make_request_buffer_slice<T: DeserializeOwned + Debug + Send + 'static>(
     url: &'static str,
-) -> Box<dyn SlicePromise<T>> {
+) -> LazyVecPromise<T> {
     let updater = move |tx: Sender<Message<T>>| async move {
         let response = unpack_result!(reqwest::get(url).await, tx);
         let entries: Vec<T> = unpack_result!(response.json().await, tx);
@@ -63,21 +61,20 @@ fn make_request_buffer_slice<T: DeserializeOwned + Debug + Send + 'static>(
             .await
             .unwrap();
     };
-    let boxed: Box<dyn SlicePromise<T>> = Box::new(LazyVecPromise::new(updater, 6));
-    boxed
+    LazyVecPromise::new(updater, 6)
 }
 
-pub fn make_posts_buffer() -> Box<dyn SlicePromise<Post>> {
+pub fn make_posts_buffer() -> LazyVecPromise<Post> {
     make_request_buffer_slice(POSTS_URL)
 }
 
-pub fn make_tags_buffer() -> Box<dyn SlicePromise<Tag>> {
+pub fn make_tags_buffer() -> LazyVecPromise<Tag> {
     make_request_buffer_slice(TAG_URL)
 }
 
 // not used currently in favor of immediate updating version below which is easier but:
 // this allows an easy "update" button on the posts page...
-pub fn _make_lazy_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Post>> {
+pub fn _make_lazy_single_post_request(post_num: i64) -> LazyValuePromise<Post> {
     let updater = move |tx: Sender<Message<Post>>| async move {
         let response = unpack_result!(
             reqwest::get(format!("{}/{}", POSTS_URL, post_num)).await,
@@ -89,8 +86,7 @@ pub fn _make_lazy_single_post_request(post_num: i64) -> Box<dyn ValuePromise<Pos
             .await
             .unwrap();
     };
-    let boxed: Box<dyn ValuePromise<Post>> = Box::new(LazyValuePromise::new(updater, 6));
-    boxed
+    LazyValuePromise::new(updater, 6)
 }
 
 pub fn make_immediate_post_request(post_num: i64) -> ImmediateValuePromise<Post> {
