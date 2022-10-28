@@ -1,4 +1,4 @@
-use crate::egui::Ui;
+use crate::egui::{ProgressBar, Ui};
 mod blog_api;
 mod ui_helpers;
 
@@ -59,7 +59,7 @@ impl BlogClient {
                 ui_helpers::view_single_post(post, self.tag_list.as_slice(), ui);
             }
             ImmediateValueState::Error(e) => {
-                ui.label(format!("Error fetching post: {}", e));
+                ui.label(format!("Error fetching post: {}", **e));
             }
             _ => {
                 ui.spinner();
@@ -75,7 +75,7 @@ impl BlogClient {
             DataState::Error(msg) => {
                 ui.label(format!("Error occured while fetching post-list: {}", msg));
             }
-            DataState::Updating | DataState::UpToDate => {
+            DataState::Updating(_) | DataState::UpToDate => {
                 let tags = match self.tag_list.poll_state() {
                     DataState::UpToDate => Some(self.tag_list.as_slice()),
                     _ => None,
@@ -88,8 +88,12 @@ impl BlogClient {
             }
         }
         ui.vertical_centered(|ui| {
-            if *self.post_list.poll_state() != DataState::UpToDate {
-                ui.spinner();
+            let state = self.post_list.poll_state();
+            if let DataState::Updating(progress) = state {
+                let bar = ProgressBar::new(progress.as_f32())
+                    .animate(true)
+                    .show_percentage();
+                ui.add(bar);
             } else if ui.button("reload").clicked() {
                 self.post_list.update();
                 self.tag_list.update();
