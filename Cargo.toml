@@ -1,6 +1,6 @@
 [package]
 name = "example_blog_client"
-version = "0.3.0-RC1"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 
@@ -8,10 +8,10 @@ license = "MIT"
 
 [dependencies]
 tokio =  {version="1", features=["rt-multi-thread", "sync", "macros"]}
-eframe = "0.19"
+eframe = "0.19.0"
 egui_extras = {version="0.19", features=["image","svg"]}
 reqwest = {version="0.11", features=["serde_json", "json"]}
 serde = {version="1.0", features=["derive"]}
-serde_json = "1.0.85"
+serde_json = "1.0"
 chrono = "0.4"
-lazy_async_promise = {git="https://github.com/ChrisRega/lazy_async_promise.git", branch="main"}
+lazy_async_promise = "0.3.0"

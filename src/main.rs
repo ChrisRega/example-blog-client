@@ -89,7 +89,8 @@ impl BlogClient {
         }
         ui.vertical_centered(|ui| {
             let state = self.post_list.poll_state();
-            if let DataState::Updating(progress) = state {
+            let progress = state.get_progress();
+            if let Some(progress) = progress {
                 let bar = ProgressBar::new(progress.as_f32())
                     .animate(true)
                     .show_percentage();
