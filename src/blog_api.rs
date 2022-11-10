@@ -1,7 +1,7 @@
-use lazy_async_promise::unpack_result;
-use lazy_async_promise::LazyValuePromise;
-use lazy_async_promise::LazyVecPromise;
-use lazy_async_promise::{set_progress, DataState, ImmediateValuePromise, Message, Progress};
+use lazy_async_promise::{
+    api_macros::*, DataState, ImmediateValuePromise, LazyValuePromise, LazyVecPromise, Message,
+    Progress,
+};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::fmt::Debug;
@@ -55,16 +55,14 @@ fn make_request_buffer_slice<T: DeserializeOwned + Debug + Send + 'static>(
         let entries: Vec<T> = unpack_result!(response.json().await, tx);
         let total_entries = entries.len();
         for (num, entry) in entries.into_iter().enumerate() {
-            tx.send(Message::NewData(entry)).await.unwrap();
+            send_data!(entry, tx);
             set_progress!(
                 Progress::from_fraction(num as u32, total_entries as u32),
                 tx
             );
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        tx.send(Message::StateChange(DataState::UpToDate))
-            .await
-            .unwrap();
+        set_finished!(tx);
     };
     LazyVecPromise::new(updater, 6)
 }
@@ -86,10 +84,8 @@ pub fn _make_lazy_single_post_request(post_num: i64) -> LazyValuePromise<Post> {
             tx
         );
         let post: Post = unpack_result!(response.json().await, tx);
-        tx.send(Message::NewData(post)).await.unwrap();
-        tx.send(Message::StateChange(DataState::UpToDate))
-            .await
-            .unwrap();
+        send_data!(post, tx);
+        set_finished!(tx);
     };
     LazyValuePromise::new(updater, 6)
 }

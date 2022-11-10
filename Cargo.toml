@@ -10,8 +10,8 @@ license = "MIT"
 tokio =  {version="1", features=["rt-multi-thread", "sync", "macros"]}
 eframe = "0.19.0"
 egui_extras = {version="0.19", features=["image","svg"]}
-reqwest = {version="0.11", features=["serde_json", "json"]}
+reqwest = {version="0.11", features=["serde_json", "json", "cookie_store"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
 chrono = "0.4"
-lazy_async_promise = "0.3.0"
+lazy_async_promise = "0.3.1"
