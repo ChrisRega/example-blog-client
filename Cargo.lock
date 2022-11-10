@@ -198,7 +198,7 @@ dependencies = [
  "js-sys",
  "num-integer",
  "num-traits",
- "time",
+ "time 0.1.44",
  "wasm-bindgen",
  "winapi",
 ]
@@ -278,6 +278,33 @@ checksum = "35ed6e9d84f0b51a7f52daf1c7d71dd136fd7a3f41a8462b8cdb8c78d920fad4"
 dependencies = [
  "bytes",
  "memchr",
+]
+
+[[package]]
+name = "cookie"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "344adc371239ef32293cb1c4fe519592fcf21206c79c02854320afcdf3ab4917"
+dependencies = [
+ "percent-encoding",
+ "time 0.3.17",
+ "version_check",
+]
+
+[[package]]
+name = "cookie_store"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e4b6aa369f41f5faa04bb80c9b1f4216ea81646ed6124d76ba5c49a7aafd9cd"
+dependencies = [
+ "cookie",
+ "idna 0.2.3",
+ "log",
+ "publicsuffix",
+ "serde",
+ "serde_json",
+ "time 0.3.17",
+ "url",
 ]
 
 [[package]]
@@ -616,7 +643,7 @@ dependencies = [
 
 [[package]]
 name = "example_blog_client"
-version = "0.3.0-RC1"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "eframe",
@@ -1060,6 +1087,17 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
+dependencies = [
+ "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
@@ -1167,9 +1205,9 @@ dependencies = [
 
 [[package]]
 name = "lazy_async_promise"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b6a3dd4c6c39a3a2fcedbcfa0fb0f7fa52d680259fc0b1441e32120ebe58d78"
+checksum = "a1e73c0f5d1ad10b2734f050beb4a274d4580954d505cca45e6945bf45547073"
 dependencies = [
  "tokio",
 ]
@@ -1704,6 +1742,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "psl-types"
+version = "2.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33cb294fe86a74cbcf50d4445b37da762029549ebeea341421c7c70370f86cac"
+
+[[package]]
+name = "publicsuffix"
+version = "2.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96a8c1bda5ae1af7f99a2962e49df150414a43d62404644d98dd5c3a93d07457"
+dependencies = [
+ "idna 0.3.0",
+ "psl-types",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1762,6 +1816,7 @@ checksum = "431949c384f4e2ae07605ccaa56d1d9d2ecdb5cadd4f9577ccfab29f2e5149fc"
 dependencies = [
  "base64",
  "bytes",
+ "cookie_store",
  "encoding_rs",
  "futures-core",
  "futures-util",
@@ -2188,6 +2243,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "time"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
+dependencies = [
+ "itoa",
+ "serde",
+ "time-core",
+ "time-macros",
+]
+
+[[package]]
+name = "time-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e153e1f1acaef8acc537e68b44906d2db6436e2b35ac2c6b42640fff91f00fd"
+
+[[package]]
+name = "time-macros"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d967f99f534ca7e495c575c62638eebc2898a8c84c119b89e250477bc4ba16b2"
+dependencies = [
+ "time-core",
+]
+
+[[package]]
 name = "tiny-skia"
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2411,7 +2493,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d68c799ae75762b8c3fe375feb6600ef5602c883c5d21eb51c09f22b83c4643"
 dependencies = [
  "form_urlencoded",
- "idna",
+ "idna 0.3.0",
  "percent-encoding",
 ]
 
