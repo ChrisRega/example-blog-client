@@ -2,9 +2,11 @@ use lazy_async_promise::{
     api_macros::*, DataState, ImmediateValuePromise, LazyValuePromise, LazyVecPromise, Message,
     Progress,
 };
+use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
@@ -21,11 +23,30 @@ pub struct Post {
 
 const POSTS_URL: &str = "https://actix.vdop.org/posts";
 const TAG_URL: &str = "https://actix.vdop.org/tags";
+const LOGIN_URL: &str = "https://actix.vdop.org/login";
 
 #[derive(Deserialize, Debug)]
 pub struct Tag {
     pub name: String,
     pub idx: usize,
+}
+
+#[derive(Serialize, Debug, Default, Clone)]
+pub struct Login {
+    pub user: String,
+    pub password: String,
+}
+
+impl Login {
+    pub fn try_login(&self, client: Arc<reqwest::Client>) -> ImmediateValuePromise<StatusCode> {
+        let credentials = self.clone();
+        let updater = async move {
+            let result = client.post(LOGIN_URL).json(&credentials).send().await?;
+            Ok(result.status())
+        };
+
+        ImmediateValuePromise::new(updater)
+    }
 }
 
 pub fn timestamp_to_string(timestamp_millis: u128) -> String {
