@@ -1,6 +1,6 @@
 [package]
 name = "example_blog_client"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 license = "MIT"
 
@@ -14,4 +14,4 @@ reqwest = {version="0.11", features=["serde_json", "json", "cookies"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
 chrono = "0.4"
-lazy_async_promise = "0.3.1"
+lazy_async_promise = {git = "https://github.com/ChrisRega/lazy_async_promise.git", branch = "0.3.2-dev"}

@@ -26,14 +26,28 @@ async fn main() {
 
 enum Page {
     ListPosts,
-    ViewPost(ImmediateValuePromise<Post>),
-    Login(LoginData),
+    ViewPost(PostState),
+    Login(LoginState),
 }
 
 #[derive(Default)]
-struct LoginData {
+struct LoginState {
     credentials: blog_api::Login,
     login_response: Option<ImmediateValuePromise<StatusCode>>,
+}
+
+struct PostState {
+    post: ImmediateValuePromise<Post>,
+    edit_mode: bool,
+}
+
+impl PostState {
+    pub fn from_promise(post: ImmediateValuePromise<Post>) -> Self {
+        PostState {
+            post,
+            edit_mode: false,
+        }
+    }
 }
 
 struct BlogClient {
@@ -73,9 +87,21 @@ impl BlogClient {
                 return;
             }
         };
-        match post.poll_state() {
-            ImmediateValueState::Success(post) => {
-                ui_helpers::view_single_post(post, self.tag_list.as_slice(), ui);
+        if self.logged_in && !post.edit_mode && ui.button("edit...").clicked() {
+            post.edit_mode = true;
+        } else if self.logged_in && post.edit_mode && ui.button("cancel").clicked() {
+            post.edit_mode = false;
+        }
+
+        let state = post.post.poll_state_mut();
+        match state {
+            ImmediateValueState::Success(posting) => {
+                ui_helpers::display_single_post(
+                    posting,
+                    self.tag_list.as_slice(),
+                    ui,
+                    post.edit_mode,
+                );
             }
             ImmediateValueState::Error(e) => {
                 ui.label(format!("Error fetching post: {}", **e));
@@ -143,7 +169,9 @@ impl BlogClient {
                 if let Some(selected_post) =
                     ui_helpers::view_post_list(self.post_list.as_slice(), tags, ui)
                 {
-                    self.page = Page::ViewPost(make_immediate_post_request(selected_post));
+                    self.page = Page::ViewPost(PostState::from_promise(
+                        make_immediate_post_request(selected_post),
+                    ));
                 }
             }
         }
@@ -161,7 +189,7 @@ impl BlogClient {
                     self.tag_list.update();
                 }
                 if !self.logged_in && ui.button("login").clicked() {
-                    self.page = Page::Login(LoginData::default());
+                    self.page = Page::Login(LoginState::default());
                 }
             }
         });

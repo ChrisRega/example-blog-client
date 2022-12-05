@@ -1,14 +1,20 @@
 use crate::{resolve_tags, timestamp_to_string, Post, Tag};
-use eframe::egui::{Label, ScrollArea, Sense, Ui};
+use eframe::egui::{Label, ScrollArea, Sense, TextEdit, Ui};
 
-pub fn view_single_post(post: &Post, tags: &[Tag], ui: &mut Ui) {
+pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode: bool) {
     ui.heading(post.title.as_str());
     let tags = resolve_tags(post.tags.as_slice(), tags);
     ui.label(format!("Tagged: {}", tags.join(", ")));
     ui.label(format!("Date: {}", timestamp_to_string(post.timestamp)));
     ScrollArea::both()
         .auto_shrink([false; 2])
-        .show_viewport(ui, |ui, _| ui.add(Label::new(post.post.as_str())));
+        .show_viewport(ui, |ui, _| {
+            if !edit_mode {
+                ui.add(Label::new(post.post.as_str()));
+            } else {
+                ui.add(TextEdit::multiline(&mut post.post));
+            }
+        });
 }
 
 pub fn view_post_list(posts: &[Post], tags: Option<&[Tag]>, ui: &mut Ui) -> Option<i64> {
