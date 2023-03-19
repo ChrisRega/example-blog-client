@@ -1,5 +1,6 @@
 use crate::{resolve_tags, timestamp_to_string, Post, Tag};
 use eframe::egui::{Label, ScrollArea, Sense, TextEdit, Ui};
+use egui_extras::Column;
 
 pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode: bool) {
     ui.heading(post.title.as_str());
@@ -19,15 +20,13 @@ pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode
 
 pub fn view_post_list(posts: &[Post], tags: Option<&[Tag]>, ui: &mut Ui) -> Option<i64> {
     let mut selected_post = None;
-
-    use egui_extras::Size;
     use egui_extras::TableBuilder;
 
     TableBuilder::new(ui)
         .striped(true)
-        .column(Size::remainder().at_least(100.0))
-        .column(Size::remainder())
-        .column(Size::exact(100.0))
+        .column(Column::remainder().at_least(100.0))
+        .column(Column::remainder())
+        .column(Column::exact(100.0))
         .header(20.0, |mut header| {
             header.col(|ui| {
                 ui.heading("Title");

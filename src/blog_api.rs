@@ -50,7 +50,7 @@ impl Login {
 }
 
 pub fn timestamp_to_string(timestamp_millis: u128) -> String {
-    let naive = chrono::NaiveDateTime::from_timestamp((timestamp_millis / 1000) as i64, 0);
+    let naive = chrono::NaiveDateTime::from_timestamp_millis(timestamp_millis as i64).expect("Could not convert timestamp to datetime");
     let datetime: chrono::DateTime<chrono::Utc> = chrono::DateTime::from_utc(naive, chrono::Utc);
     format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"))
 }

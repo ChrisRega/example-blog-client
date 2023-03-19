@@ -148,6 +148,9 @@ impl BlogClient {
                         }
                     }
                 }
+                ImmediateValueState::Empty => {
+                    ui.label("Post data was taken away.... :(");
+                }
             }
         } else if ui.button("login").clicked() {
             login.login_response = Some(login.credentials.try_login(self.client.clone()));
