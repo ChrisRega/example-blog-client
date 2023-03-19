@@ -21,6 +21,25 @@ pub struct Post {
     pub idx: i64,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct PostUpload {
+    pub post: String,
+    pub title: String,
+    pub outline: Option<String>,
+    pub tags: Vec<usize>,
+}
+
+impl From<Post> for PostUpload {
+    fn from(value: Post) -> Self {
+        PostUpload {
+            post: value.post,
+            title: value.title,
+            outline: value.outline,
+            tags: value.tags,
+        }
+    }
+}
+
 const POSTS_URL: &str = "https://actix.vdop.org/posts";
 const TAG_URL: &str = "https://actix.vdop.org/tags";
 const LOGIN_URL: &str = "https://actix.vdop.org/login";
@@ -50,7 +69,8 @@ impl Login {
 }
 
 pub fn timestamp_to_string(timestamp_millis: u128) -> String {
-    let naive = chrono::NaiveDateTime::from_timestamp_millis(timestamp_millis as i64).expect("Could not convert timestamp to datetime");
+    let naive = chrono::NaiveDateTime::from_timestamp_millis(timestamp_millis as i64)
+        .expect("Could not convert timestamp to datetime");
     let datetime: chrono::DateTime<chrono::Utc> = chrono::DateTime::from_utc(naive, chrono::Utc);
     format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"))
 }

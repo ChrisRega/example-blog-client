@@ -90,22 +90,27 @@ impl BlogClient {
 
         let state = post.post.poll_state_mut();
         match state {
-            ImmediateValueState::Success(posting) => {
-                if self.logged_in && !post.edit_mode && ui.button("edit...").clicked() {
-                    post.edit_mode = true;
-                } else if self.logged_in && post.edit_mode && ui.button("cancel").clicked() {
-                    post.edit_mode = false;
-                    self.page = Page::ViewPost(PostState::from_promise(
-                        make_immediate_post_request(posting.idx),
-                    ));
-                } else {
-                    ui_helpers::display_single_post(
-                        posting,
-                        self.tag_list.as_slice(),
-                        ui,
-                        post.edit_mode,
-                    );
+            ImmediateValueState::Success(content) => {
+                if self.logged_in {
+                    if !post.edit_mode && ui.button("edit...").clicked() {
+                        post.edit_mode = true;
+                    } else if post.edit_mode && ui.button("cancel").clicked() {
+                        post.edit_mode = false;
+                        self.page = Page::ViewPost(PostState::from_promise(
+                            make_immediate_post_request(content.idx),
+                        ));
+                        return;
+                    } else if post.edit_mode && ui.button("save").clicked() {
+                        post.edit_mode = false;
+                        println!("Saved button clicked! Implement me!");
+                    }
                 }
+                ui_helpers::display_single_post(
+                    content,
+                    self.tag_list.as_slice(),
+                    ui,
+                    post.edit_mode,
+                );
             }
             ImmediateValueState::Error(e) => {
                 ui.label(format!("Error fetching post: {}", **e));
