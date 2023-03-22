@@ -1,5 +1,6 @@
 use crate::{resolve_tags, timestamp_to_string, Post, Tag};
-use eframe::egui::{Align, Label, Layout, ScrollArea, Sense, Ui};
+use eframe::egui;
+use eframe::egui::{Align, Direction, Label, Layout, ScrollArea, Sense, Ui};
 use egui_extras::Column;
 
 pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode: bool) {
@@ -9,6 +10,11 @@ pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode
             ui.text_edit_singleline(&mut post.title);
             if let Some(outline) = &mut post.outline {
                 ui.text_edit_singleline(outline);
+                if ui.button("🗑").clicked() {
+                    post.outline = None;
+                }
+            } else if ui.button("Add outline").clicked() {
+                post.outline = Some(String::new());
             }
             ui.text_edit_multiline(&mut post.post);
         });
@@ -31,10 +37,11 @@ pub fn view_post_list(posts: &[Post], tags: Option<&[Tag]>, ui: &mut Ui) -> Opti
     let mut selected_post = None;
     use egui_extras::TableBuilder;
     TableBuilder::new(ui)
+        .cell_layout(egui::Layout::top_down(Align::TOP))
         .striped(true)
-        .column(Column::remainder().at_least(100.0))
-        .column(Column::remainder())
-        .column(Column::exact(100.0))
+        .column(Column::auto().resizable(true))
+        .column(Column::auto().resizable(true))
+        .column(Column::auto().resizable(true))
         .header(20.0, |mut header| {
             header.col(|ui| {
                 ui.heading("Title");
@@ -43,7 +50,7 @@ pub fn view_post_list(posts: &[Post], tags: Option<&[Tag]>, ui: &mut Ui) -> Opti
                 ui.heading("Tags");
             });
             header.col(|ui| {
-                ui.heading("Time");
+                ui.heading("Date");
             });
         })
         .body(|mut body| {

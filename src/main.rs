@@ -8,7 +8,7 @@ use crate::blog_api::{
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use eframe::egui::TextEdit;
+use eframe::egui::{Align, Direction, Layout, TextEdit};
 use lazy_async_promise::{
     DataState, ImmediateValuePromise, ImmediateValueState, LazyVecPromise, Promise,
 };
@@ -21,7 +21,8 @@ async fn main() {
         "Blog-Demo for async / tokio",
         native_options,
         Box::new(|cc| Box::new(BlogClient::new(cc))),
-    );
+    )
+    .unwrap();
 }
 
 enum Page {
@@ -128,12 +129,6 @@ impl BlogClient {
                 return;
             }
         };
-        ui.heading("Login to blog");
-        ui.label("User");
-        ui.text_edit_singleline(&mut login.credentials.user);
-        ui.label("Password");
-        ui.add(TextEdit::singleline(&mut login.credentials.password).password(true));
-
         if let Some(response) = &mut login.login_response {
             match response.poll_state() {
                 ImmediateValueState::Updating => {
@@ -146,10 +141,16 @@ impl BlogClient {
                     if code.is_success() {
                         ui.label("Successfully logged in!");
                         self.logged_in = true;
+                        if ui.button("back").clicked() {
+                            self.page = Page::ListPosts;
+                        }
                     } else {
                         ui.label(format!("Server didn't return success! (code: {})", *code));
                         if ui.button("Retry").clicked() {
                             login.login_response = None;
+                        }
+                        if ui.button("back").clicked() {
+                            self.page = Page::ListPosts;
                         }
                     }
                 }
@@ -157,11 +158,18 @@ impl BlogClient {
                     ui.label("Post data was taken away.... :(");
                 }
             }
-        } else if ui.button("login").clicked() {
-            login.login_response = Some(login.credentials.try_login(self.client.clone()));
-        }
-        if ui.button("back").clicked() {
-            self.page = Page::ListPosts;
+        } else {
+            ui.heading("Login to blog");
+            ui.label("User");
+            ui.text_edit_singleline(&mut login.credentials.user);
+            ui.label("Password");
+            ui.add(TextEdit::singleline(&mut login.credentials.password).password(true));
+            if ui.button("login").clicked() {
+                login.login_response = Some(login.credentials.try_login(self.client.clone()));
+            }
+            if ui.button("back").clicked() {
+                self.page = Page::ListPosts;
+            }
         }
     }
 
@@ -210,16 +218,23 @@ impl BlogClient {
 
 impl eframe::App for BlogClient {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| match &mut self.page {
-            Page::ListPosts => {
-                self.ui_post_list(ui);
-            }
-            Page::ViewPost(_) => {
-                self.ui_view_post(ui);
-            }
-            Page::Login(_) => {
-                self.ui_login(ui);
-            }
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.with_layout(
+                Layout::centered_and_justified(Direction::TopDown).with_cross_justify(true),
+                |ui| {
+                    match &mut self.page {
+                        Page::ListPosts => {
+                            self.ui_post_list(ui);
+                        }
+                        Page::ViewPost(_) => {
+                            self.ui_view_post(ui);
+                        }
+                        Page::Login(_) => {
+                            self.ui_login(ui);
+                        }
+                    };
+                },
+            );
         });
     }
 }
