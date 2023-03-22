@@ -1,6 +1,6 @@
 use crate::{resolve_tags, timestamp_to_string, Post, Tag};
 use eframe::egui;
-use eframe::egui::{Align, Direction, Label, Layout, ScrollArea, Sense, Ui};
+use eframe::egui::{Align, Label, Layout, ScrollArea, Sense, Ui};
 use egui_extras::Column;
 
 pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode: bool) {
@@ -25,11 +25,11 @@ pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode
         let tags = resolve_tags(post.tags.as_slice(), tags);
         ui.label(format!("Tagged: {}", tags.join(", ")));
         ui.label(format!("Date: {}", timestamp_to_string(post.timestamp)));
-        ScrollArea::both()
+        ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show_viewport(ui, |ui, _| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    ui.add(Label::new(post.post.as_str()))
+                    ui.add(Label::new(post.post.as_str()).wrap(true))
                 });
             });
     }

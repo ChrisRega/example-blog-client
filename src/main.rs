@@ -91,10 +91,10 @@ impl BlogClient {
         if ui.button("<<").clicked() {
             self.page = Page::ListPosts;
         }
-
         let post = match &mut self.page {
             Page::ViewPost(post) => post,
             _ => {
+                self.page = Page::ListPosts;
                 return;
             }
         };
@@ -127,7 +127,7 @@ impl BlogClient {
                 ui.label(format!("Error fetching post: {}", **e));
             }
             _ => {
-                //  ui.spinner();
+                ui.spinner();
             }
         }
     }
