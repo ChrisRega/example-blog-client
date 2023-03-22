@@ -8,7 +8,7 @@ use crate::blog_api::{
     timestamp_to_string, Post, Tag,
 };
 use eframe::egui;
-use eframe::egui::{Align, Direction, Layout, TextEdit};
+use eframe::egui::{Align, Layout, TextEdit};
 use lazy_async_promise::{
     DataState, ImmediateValuePromise, ImmediateValueState, LazyVecPromise, Promise,
 };
@@ -57,6 +57,7 @@ struct BlogClient {
     page: Page,
     logged_in: bool,
     client: Arc<reqwest::Client>,
+    update_callback_ctx: Option<egui::Context>,
 }
 
 impl BlogClient {
@@ -72,11 +73,20 @@ impl BlogClient {
                     .expect("Could not make client"),
             ),
             logged_in: false,
+            update_callback_ctx: None,
         }
     }
 }
 
 impl BlogClient {
+    fn update_callback(&self) -> impl Fn() {
+        let ctx = self.update_callback_ctx.clone().unwrap();
+        move || {
+            ctx.request_repaint();
+            println!("Update callback executed");
+        }
+    }
+
     fn ui_view_post(&mut self, ui: &mut Ui) {
         if ui.button("<<").clicked() {
             self.page = Page::ListPosts;
@@ -98,7 +108,7 @@ impl BlogClient {
                     } else if post.edit_mode && ui.button("cancel").clicked() {
                         post.edit_mode = false;
                         self.page = Page::ViewPost(PostState::from_promise(
-                            make_immediate_post_request(content.idx),
+                            make_immediate_post_request(content.idx, self.update_callback()),
                         ));
                         return;
                     } else if post.edit_mode && ui.button("save").clicked() {
@@ -117,7 +127,7 @@ impl BlogClient {
                 ui.label(format!("Error fetching post: {}", **e));
             }
             _ => {
-                ui.spinner();
+                //  ui.spinner();
             }
         }
     }
@@ -174,67 +184,80 @@ impl BlogClient {
     }
 
     fn ui_post_list(&mut self, ui: &mut Ui) {
-        match self.post_list.poll_state() {
-            DataState::Uninitialized => {
-                ui.label("Updating post list");
-            }
-            DataState::Error(msg) => {
-                ui.label(format!("Error occurred while fetching post-list: {}", msg));
-            }
-            DataState::Updating(_) | DataState::UpToDate => {
-                let tags = match self.tag_list.poll_state() {
-                    DataState::UpToDate => Some(self.tag_list.as_slice()),
-                    _ => None,
-                };
-                if let Some(selected_post) =
-                    ui_helpers::view_post_list(self.post_list.as_slice(), tags, ui)
-                {
-                    self.page = Page::ViewPost(PostState::from_promise(
-                        make_immediate_post_request(selected_post),
-                    ));
-                }
-            }
-        }
-        ui.vertical_centered(|ui| {
-            let state = self.post_list.poll_state();
-            let progress = state.get_progress();
-            if let Some(progress) = progress {
-                let bar = ProgressBar::new(progress.as_f32())
-                    .animate(true)
-                    .show_percentage();
-                ui.add(bar);
-            } else {
-                if ui.button("reload").clicked() {
-                    self.post_list.update();
-                    self.tag_list.update();
-                }
-                if !self.logged_in && ui.button("login").clicked() {
-                    self.page = Page::Login(LoginState::default());
-                }
-            }
-        });
+        use egui_extras::{Size, StripBuilder};
+        StripBuilder::new(ui)
+            .size(Size::remainder().at_least(100.0)) // for the table
+            .size(Size::exact(10.)) // for the source code link
+            .vertical(|mut strip| {
+                strip.cell(|ui| {
+                    egui::ScrollArea::both().show(ui, |ui| match self.post_list.poll_state() {
+                        DataState::Uninitialized => {
+                            ui.label("Updating post list");
+                        }
+                        DataState::Error(msg) => {
+                            ui.label(format!("Error occurred while fetching post-list: {}", msg));
+                        }
+                        DataState::Updating(_) | DataState::UpToDate => {
+                            let tags = match self.tag_list.poll_state() {
+                                DataState::UpToDate => Some(self.tag_list.as_slice()),
+                                _ => None,
+                            };
+                            if let Some(selected_post) =
+                                ui_helpers::view_post_list(self.post_list.as_slice(), tags, ui)
+                            {
+                                self.page = Page::ViewPost(PostState::from_promise(
+                                    make_immediate_post_request(
+                                        selected_post,
+                                        self.update_callback(),
+                                    ),
+                                ));
+                            }
+                        }
+                    });
+                });
+                strip.cell(|ui| {
+                    ui.horizontal_centered(|ui| {
+                        let state = self.post_list.poll_state();
+                        let progress = state.get_progress();
+                        if let Some(progress) = progress {
+                            let bar = ProgressBar::new(progress.as_f32())
+                                .animate(true)
+                                .show_percentage();
+                            ui.add(bar);
+                        } else {
+                            if ui.button("reload").clicked() {
+                                self.post_list.update();
+                                self.tag_list.update();
+                            }
+                            if !self.logged_in && ui.button("login").clicked() {
+                                self.page = Page::Login(LoginState::default());
+                            }
+                        }
+                    });
+                });
+            });
     }
 }
 
 impl eframe::App for BlogClient {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        let ctx_clone = ctx.clone();
+        self.update_callback_ctx = Some(ctx_clone);
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.with_layout(
-                Layout::centered_and_justified(Direction::TopDown).with_cross_justify(true),
-                |ui| {
-                    match &mut self.page {
-                        Page::ListPosts => {
-                            self.ui_post_list(ui);
-                        }
-                        Page::ViewPost(_) => {
-                            self.ui_view_post(ui);
-                        }
-                        Page::Login(_) => {
-                            self.ui_login(ui);
-                        }
-                    };
-                },
-            );
+            ui.with_layout(Layout::top_down(Align::Center), |ui| {
+                match &mut self.page {
+                    Page::ListPosts => {
+                        self.ui_post_list(ui);
+                    }
+                    Page::ViewPost(_) => {
+                        self.ui_view_post(ui);
+                    }
+                    Page::Login(_) => {
+                        self.ui_login(ui);
+                    }
+                };
+            });
         });
     }
 }

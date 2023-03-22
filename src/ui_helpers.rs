@@ -5,31 +5,33 @@ use egui_extras::Column;
 
 pub fn display_single_post(post: &mut Post, tags: &[Tag], ui: &mut Ui, edit_mode: bool) {
     if edit_mode {
-        ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-            ui.heading("Edit post...");
-            ui.text_edit_singleline(&mut post.title);
-            if let Some(outline) = &mut post.outline {
-                ui.text_edit_singleline(outline);
-                if ui.button("🗑").clicked() {
-                    post.outline = None;
-                }
-            } else if ui.button("Add outline").clicked() {
-                post.outline = Some(String::new());
+        ui.heading("Edit post...");
+        ui.text_edit_singleline(&mut post.title);
+        if let Some(outline) = &mut post.outline {
+            ui.text_edit_singleline(outline);
+            if ui.button("🗑").clicked() {
+                post.outline = None;
             }
-            ui.text_edit_multiline(&mut post.post);
+        } else if ui.button("Add outline").clicked() {
+            post.outline = Some(String::new());
+        }
+        ScrollArea::both().show(ui, |ui| {
+            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                ui.text_edit_multiline(&mut post.post);
+            });
         });
     } else {
-        ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-            ui.heading(post.title.as_str());
-            let tags = resolve_tags(post.tags.as_slice(), tags);
-            ui.label(format!("Tagged: {}", tags.join(", ")));
-            ui.label(format!("Date: {}", timestamp_to_string(post.timestamp)));
-            ScrollArea::both()
-                .auto_shrink([false; 2])
-                .show_viewport(ui, |ui, _| {
-                    ui.add(Label::new(post.post.as_str()));
+        ui.heading(post.title.as_str());
+        let tags = resolve_tags(post.tags.as_slice(), tags);
+        ui.label(format!("Tagged: {}", tags.join(", ")));
+        ui.label(format!("Date: {}", timestamp_to_string(post.timestamp)));
+        ScrollArea::both()
+            .auto_shrink([false; 2])
+            .show_viewport(ui, |ui, _| {
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    ui.add(Label::new(post.post.as_str()))
                 });
-        });
+            });
     }
 }
 
@@ -37,7 +39,7 @@ pub fn view_post_list(posts: &[Post], tags: Option<&[Tag]>, ui: &mut Ui) -> Opti
     let mut selected_post = None;
     use egui_extras::TableBuilder;
     TableBuilder::new(ui)
-        .cell_layout(egui::Layout::top_down(Align::TOP))
+        .cell_layout(egui::Layout::left_to_right(Align::Center))
         .striped(true)
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))

@@ -131,10 +131,14 @@ pub fn _make_lazy_single_post_request(post_num: i64) -> LazyValuePromise<Post> {
     LazyValuePromise::new(updater, 6)
 }
 
-pub fn make_immediate_post_request(post_num: i64) -> ImmediateValuePromise<Post> {
+pub fn make_immediate_post_request(
+    post_num: i64,
+    update_callback: impl Fn() + Send + 'static,
+) -> ImmediateValuePromise<Post> {
     ImmediateValuePromise::new(async move {
         let response = reqwest::get(format!("{}/{}", POSTS_URL, post_num)).await?;
         let post: Post = response.json().await?;
+        update_callback();
         Ok(post)
     })
 }
