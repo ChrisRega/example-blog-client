@@ -2,9 +2,11 @@ use lazy_async_promise::{
     api_macros::*, DataState, ImmediateValuePromise, LazyValuePromise, LazyVecPromise, Message,
     Progress,
 };
+use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
@@ -19,8 +21,28 @@ pub struct Post {
     pub idx: i64,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct PostUpload {
+    pub post: String,
+    pub title: String,
+    pub outline: Option<String>,
+    pub tags: Vec<usize>,
+}
+
+impl From<Post> for PostUpload {
+    fn from(value: Post) -> Self {
+        PostUpload {
+            post: value.post,
+            title: value.title,
+            outline: value.outline,
+            tags: value.tags,
+        }
+    }
+}
+
 const POSTS_URL: &str = "https://actix.vdop.org/posts";
 const TAG_URL: &str = "https://actix.vdop.org/tags";
+const LOGIN_URL: &str = "https://actix.vdop.org/login";
 
 #[derive(Deserialize, Debug)]
 pub struct Tag {
@@ -28,8 +50,27 @@ pub struct Tag {
     pub idx: usize,
 }
 
+#[derive(Serialize, Debug, Default, Clone)]
+pub struct Login {
+    pub user: String,
+    pub password: String,
+}
+
+impl Login {
+    pub fn try_login(&self, client: Arc<reqwest::Client>) -> ImmediateValuePromise<StatusCode> {
+        let credentials = self.clone();
+        let updater = async move {
+            let result = client.post(LOGIN_URL).json(&credentials).send().await?;
+            Ok(result.status())
+        };
+
+        ImmediateValuePromise::new(updater)
+    }
+}
+
 pub fn timestamp_to_string(timestamp_millis: u128) -> String {
-    let naive = chrono::NaiveDateTime::from_timestamp((timestamp_millis / 1000) as i64, 0);
+    let naive = chrono::NaiveDateTime::from_timestamp_millis(timestamp_millis as i64)
+        .expect("Could not convert timestamp to datetime");
     let datetime: chrono::DateTime<chrono::Utc> = chrono::DateTime::from_utc(naive, chrono::Utc);
     format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"))
 }
@@ -90,10 +131,14 @@ pub fn _make_lazy_single_post_request(post_num: i64) -> LazyValuePromise<Post> {
     LazyValuePromise::new(updater, 6)
 }
 
-pub fn make_immediate_post_request(post_num: i64) -> ImmediateValuePromise<Post> {
+pub fn make_immediate_post_request(
+    post_num: i64,
+    update_callback: impl Fn() + Send + 'static,
+) -> ImmediateValuePromise<Post> {
     ImmediateValuePromise::new(async move {
         let response = reqwest::get(format!("{}/{}", POSTS_URL, post_num)).await?;
         let post: Post = response.json().await?;
+        update_callback();
         Ok(post)
     })
 }
