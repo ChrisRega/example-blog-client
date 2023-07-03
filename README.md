@@ -52,7 +52,7 @@ pub fn make_immediate_post_request(
     })
 }
 ```
-The specialty for egui is, that we don't actually get drawn / updated if nothing is going own.
+The specialty for egui is, that we don't actually get drawn / updated if nothing is going on.
 Imagine downloading the post without a spinner - nothing changes, no update call therefore no polling.
 But without polling we will never get notified about the finish. This will not happen in this use case since we would usually 
 use a spinner for indicating that we are fetching main page content. But imagine a select!-macro
